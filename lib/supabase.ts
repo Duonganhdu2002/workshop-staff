@@ -18,9 +18,6 @@ let supabaseClient: SupabaseClient
 if (isSupabaseConfigured()) {
   supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
-      redirectTo: typeof window !== 'undefined' 
-        ? `${window.location.origin}/auth/callback`
-        : undefined,
       persistSession: true,
       autoRefreshToken: true,
     }
