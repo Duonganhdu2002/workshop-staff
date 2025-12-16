@@ -19,6 +19,40 @@ export default function ScannerPage() {
   // Check if Supabase is configured
   const isConfigured = isSupabaseConfigured()
 
+  // Detect Safari browser
+  const isSafari = () => {
+    if (typeof window === 'undefined') return false
+    const ua = window.navigator.userAgent.toLowerCase()
+    return ua.includes('safari') && !ua.includes('chrome') && !ua.includes('chromium')
+  }
+
+  // Get available cameras and find back camera
+  const getBackCameraId = async (): Promise<string | null> => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices()
+      const videoDevices = devices.filter(device => device.kind === 'videoinput')
+      
+      // Try to find back camera (usually labeled as "back" or "environment")
+      for (const device of videoDevices) {
+        const label = device.label.toLowerCase()
+        if (label.includes('back') || label.includes('rear') || label.includes('environment')) {
+          return device.deviceId
+        }
+      }
+      
+      // If no back camera found, return the last camera (usually back on mobile)
+      if (videoDevices.length > 1) {
+        return videoDevices[videoDevices.length - 1].deviceId
+      }
+      
+      // Return first available camera
+      return videoDevices[0]?.deviceId || null
+    } catch (err) {
+      console.error('Error enumerating devices:', err)
+      return null
+    }
+  }
+
   useEffect(() => {
     const loadStaffEmail = async () => {
       const email = await getStaffEmail()
@@ -40,13 +74,102 @@ export default function ScannerPage() {
       setError(null)
       setCustomerInfo(null)
       
+      // Check if camera is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Trình duyệt không hỗ trợ truy cập camera. Vui lòng sử dụng trình duyệt khác hoặc cấp quyền truy cập camera.')
+      }
+
+      // Check HTTPS requirement for Safari
+      if (isSafari() && window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        throw new Error('Safari yêu cầu kết nối HTTPS để truy cập camera. Vui lòng sử dụng HTTPS hoặc thử trên trình duyệt khác.')
+      }
+
       const html5QrCode = new Html5Qrcode(qrCodeRegionId)
       scannerRef.current = html5QrCode
 
+      // Configure camera based on browser
+      let cameraConfig: any
+      
+      if (isSafari()) {
+        // Safari: Try to get deviceId for back camera
+        const backCameraId = await getBackCameraId()
+        if (backCameraId) {
+          cameraConfig = { deviceId: { exact: backCameraId } }
+        } else {
+          // Fallback: try facingMode, Safari might support it
+          cameraConfig = { facingMode: 'environment' }
+        }
+      } else {
+        // Other browsers: use facingMode
+        cameraConfig = { facingMode: 'environment' }
+      }
+
+      await html5QrCode.start(
+        cameraConfig,
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          // Safari-specific: use lower fps for better compatibility
+          ...(isSafari() && { fps: 5 })
+        },
+        (decodedText) => {
+          handleQRCodeScanned(decodedText)
+        },
+        (errorMessage) => {
+          // Ignore scanning errors
+        }
+      )
+
+      setScanning(true)
+    } catch (err: any) {
+      let errorMessage = 'Không thể khởi động camera'
+      
+      if (err && err.message) {
+        errorMessage += ': ' + err.message
+      } else if (err && typeof err === 'string') {
+        errorMessage += ': ' + err
+      } else if (err) {
+        errorMessage += ': ' + String(err)
+      } else {
+        errorMessage += '. Vui lòng kiểm tra quyền truy cập camera và thử lại.'
+      }
+      
+      // Provide more specific error messages for common issues
+      if (err && err.name === 'NotAllowedError') {
+        errorMessage = 'Không có quyền truy cập camera. Vui lòng cấp quyền trong cài đặt trình duyệt.'
+        if (isSafari()) {
+          errorMessage += ' (Safari: Cài đặt > Safari > Camera > Cho phép)'
+        }
+      } else if (err && err.name === 'NotFoundError') {
+        errorMessage = 'Không tìm thấy camera. Vui lòng kiểm tra thiết bị của bạn.'
+      } else if (err && err.name === 'NotReadableError') {
+        errorMessage = 'Camera đang được sử dụng bởi ứng dụng khác. Vui lòng đóng ứng dụng khác và thử lại.'
+      } else if (err && err.name === 'OverconstrainedError') {
+        // Safari might throw this if camera constraints are not supported
+        errorMessage = 'Camera không hỗ trợ cấu hình này. Đang thử cấu hình khác...'
+        // Retry with simpler config
+        setTimeout(() => {
+          retryWithSimpleConfig()
+        }, 500)
+        return
+      }
+      
+      setError(errorMessage)
+      console.error('Camera error:', err)
+    }
+  }
+
+  const retryWithSimpleConfig = async () => {
+    try {
+      setError(null)
+      const html5QrCode = new Html5Qrcode(qrCodeRegionId)
+      scannerRef.current = html5QrCode
+
+      // Use simplest config for Safari
       await html5QrCode.start(
         { facingMode: 'environment' },
         {
-          fps: 10,
+          fps: 5,
           qrbox: { width: 250, height: 250 }
         },
         (decodedText) => {
@@ -59,8 +182,8 @@ export default function ScannerPage() {
 
       setScanning(true)
     } catch (err: any) {
-      setError('Không thể khởi động camera: ' + err.message)
-      console.error(err)
+      setError('Không thể khởi động camera. Vui lòng thử lại hoặc sử dụng chức năng nhập thủ công.')
+      console.error('Retry camera error:', err)
     }
   }
 
