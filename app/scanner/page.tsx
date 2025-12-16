@@ -84,6 +84,18 @@ export default function ScannerPage() {
         throw new Error('Safari yêu cầu kết nối HTTPS để truy cập camera. Vui lòng sử dụng HTTPS hoặc thử trên trình duyệt khác.')
       }
 
+      // Set scanning to true first so React renders the element
+      setScanning(true)
+      
+      // Wait for React to render the element before initializing scanner
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      // Verify element exists
+      const element = document.getElementById(qrCodeRegionId)
+      if (!element) {
+        throw new Error('Không tìm thấy phần tử quét QR. Vui lòng thử lại.')
+      }
+
       const html5QrCode = new Html5Qrcode(qrCodeRegionId)
       scannerRef.current = html5QrCode
 
@@ -119,8 +131,6 @@ export default function ScannerPage() {
           // Ignore scanning errors
         }
       )
-
-      setScanning(true)
     } catch (err: any) {
       let errorMessage = 'Không thể khởi động camera'
       
@@ -156,12 +166,21 @@ export default function ScannerPage() {
       
       setError(errorMessage)
       console.error('Camera error:', err)
+      setScanning(false)
     }
   }
 
   const retryWithSimpleConfig = async () => {
     try {
       setError(null)
+      
+      // Ensure element exists
+      const element = document.getElementById(qrCodeRegionId)
+      if (!element) {
+        setScanning(true)
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+      
       const html5QrCode = new Html5Qrcode(qrCodeRegionId)
       scannerRef.current = html5QrCode
 
@@ -184,6 +203,7 @@ export default function ScannerPage() {
     } catch (err: any) {
       setError('Không thể khởi động camera. Vui lòng thử lại hoặc sử dụng chức năng nhập thủ công.')
       console.error('Retry camera error:', err)
+      setScanning(false)
     }
   }
 
@@ -398,7 +418,7 @@ export default function ScannerPage() {
 
           {scanning && (
             <div className="space-y-4">
-              <div id={qrCodeRegionId} className="w-full"></div>
+              <div id={qrCodeRegionId} className="w-full min-h-[300px]"></div>
               <button
                 onClick={stopScanning}
                 className="w-full px-6 py-3 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors font-medium"
