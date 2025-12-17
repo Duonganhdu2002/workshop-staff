@@ -58,5 +58,7 @@ export type Registration = {
   seat_number: number | null
   created_at: string
   updated_at: string
+  payment_content?: string | null
+  transfer_content?: string | null
 }
 

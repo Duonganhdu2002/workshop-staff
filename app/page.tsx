@@ -449,6 +449,14 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key`}
                         <span className="text-xs text-gray-500">SĐT:</span>
                         <p className="text-sm text-gray-900">{reg.phone}</p>
                       </div>
+                      {(reg.transfer_content || reg.payment_content) && (
+                        <div>
+                          <span className="text-xs text-gray-500">Nội dung chuyển khoản:</span>
+                          <p className="text-sm text-gray-900 font-mono bg-gray-50 px-2 py-1 rounded border border-gray-200 break-all mt-1">
+                            {reg.transfer_content || reg.payment_content}
+                          </p>
+                        </div>
+                      )}
                       <div className="flex items-center gap-4">
                         <div>
                           <span className="text-xs text-gray-500">Ngày workshop:</span>
@@ -533,6 +541,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key`}
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         SĐT
                       </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">
+                        Nội dung chuyển khoản
+                      </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Ngày workshop
                       </th>
@@ -559,6 +570,20 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key`}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">{reg.phone}</div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="text-sm text-gray-900">
+                            {reg.transfer_content || reg.payment_content ? (
+                              <div 
+                                className="inline-block font-mono text-xs bg-gray-50 px-2.5 py-1.5 rounded-md border border-gray-200 text-gray-800 max-w-[180px] break-words whitespace-normal"
+                                title={reg.transfer_content || reg.payment_content || ''}
+                              >
+                                {reg.transfer_content || reg.payment_content}
+                              </div>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">
