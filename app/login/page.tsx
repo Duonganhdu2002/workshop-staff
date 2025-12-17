@@ -54,18 +54,18 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-stripes md:bg-stripes-desktop flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-stripes md:bg-stripes-desktop flex items-center justify-center py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">
-        <div className="bg-white rounded-md border border-gray-200 p-6 md:p-8">
-          <div className="mb-8">
-            <h2 className="text-center text-4xl font-bold text-black mb-2">
+        <div className="bg-white rounded-md border border-gray-200 p-6 sm:p-8">
+          <div className="mb-6 sm:mb-8">
+            <h2 className="text-center text-2xl sm:text-4xl font-bold text-black mb-2">
               Đăng nhập nhân viên
             </h2>
             <p className="text-center text-sm text-gray-600">
               Vui lòng đăng nhập bằng email và mật khẩu được cấp phép
             </p>
           </div>
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="space-y-5 sm:space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-4">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-black mb-2">
@@ -77,7 +77,7 @@ export default function LoginPage() {
                   type="email"
                   autoComplete="email"
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent bg-white text-black placeholder-gray-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent bg-white text-black placeholder-gray-500 text-base min-h-[48px]"
                   placeholder="Email đăng nhập"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -94,7 +94,7 @@ export default function LoginPage() {
                   type="password"
                   autoComplete="current-password"
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent bg-white text-black placeholder-gray-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent bg-white text-black placeholder-gray-500 text-base min-h-[48px]"
                   placeholder="Mật khẩu"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -120,7 +120,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-black text-white py-3 rounded-md font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black"
+                className="w-full bg-black text-white py-3 rounded-md font-medium hover:bg-gray-800 active:bg-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black min-h-[48px] touch-manipulation"
               >
                 {loading ? (
                   <span className="flex items-center justify-center">

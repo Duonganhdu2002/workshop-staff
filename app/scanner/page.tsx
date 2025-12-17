@@ -116,11 +116,15 @@ export default function ScannerPage() {
         cameraConfig = { facingMode: 'environment' }
       }
 
+      // Calculate QR box size based on screen width (responsive)
+      const screenWidth = window.innerWidth
+      const qrBoxSize = screenWidth < 640 ? Math.min(screenWidth - 80, 300) : 250
+      
       await html5QrCode.start(
         cameraConfig,
         {
           fps: 10,
-          qrbox: { width: 250, height: 250 },
+          qrbox: { width: qrBoxSize, height: qrBoxSize },
           // Safari-specific: use lower fps for better compatibility
           ...(isSafari() && { fps: 5 })
         },
@@ -185,11 +189,14 @@ export default function ScannerPage() {
       scannerRef.current = html5QrCode
 
       // Use simplest config for Safari
+      const screenWidth = window.innerWidth
+      const qrBoxSize = screenWidth < 640 ? Math.min(screenWidth - 80, 300) : 250
+      
       await html5QrCode.start(
         { facingMode: 'environment' },
         {
           fps: 5,
-          qrbox: { width: 250, height: 250 }
+          qrbox: { width: qrBoxSize, height: qrBoxSize }
         },
         (decodedText) => {
           handleQRCodeScanned(decodedText)
@@ -356,36 +363,38 @@ export default function ScannerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-stripes md:bg-stripes-desktop text-black py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-stripes md:bg-stripes-desktop text-black py-4 sm:py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
-        <div className="mb-6 flex justify-between items-center">
+        <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
           <Link
             href="/"
-            className="text-black hover:text-gray-800 font-medium"
+            className="text-black hover:text-gray-800 font-medium text-sm sm:text-base flex items-center gap-1"
           >
-            ← Quay lại danh sách
+            <span className="text-lg">←</span> Quay lại danh sách
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
             {staffEmail && (
-              <span className="text-sm text-gray-600">Đăng nhập: {staffEmail}</span>
+              <span className="text-xs sm:text-sm text-gray-600 truncate max-w-[200px] sm:max-w-none">
+                {staffEmail}
+              </span>
             )}
             <button
               onClick={handleLogout}
-              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors text-sm font-medium"
+              className="px-4 py-2.5 sm:py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 active:bg-gray-800 transition-colors text-sm font-medium w-full sm:w-auto min-h-[44px] sm:min-h-0"
             >
               Đăng xuất
             </button>
           </div>
         </div>
 
-        <div className="bg-white rounded-md border border-gray-200 p-6">
-          <h1 className="text-3xl font-bold text-black mb-6">Quét QR Code khách hàng</h1>
+        <div className="bg-white rounded-md border border-gray-200 p-4 sm:p-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-black mb-4 sm:mb-6">Quét QR Code khách hàng</h1>
 
           {!scanning && !customerInfo && (
             <div className="space-y-4">
               <button
                 onClick={startScanning}
-                className="w-full px-6 py-4 bg-black text-white rounded-md hover:bg-gray-800 transition-colors font-medium text-lg"
+                className="w-full px-6 py-4 bg-black text-white rounded-md hover:bg-gray-800 active:bg-gray-900 transition-colors font-medium text-base sm:text-lg min-h-[56px] touch-manipulation"
               >
                 Bắt đầu quét QR Code
               </button>
@@ -403,12 +412,12 @@ export default function ScannerPage() {
                 <textarea
                   name="qrData"
                   placeholder="Dán dữ liệu QR code ở đây (JSON format)"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent font-mono text-sm bg-white text-black"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent font-mono text-sm bg-white text-black min-h-[120px] resize-y"
                   rows={4}
                 />
                 <button
                   type="submit"
-                  className="w-full px-6 py-3 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors font-medium"
+                  className="w-full px-6 py-3 bg-gray-600 text-white rounded-md hover:bg-gray-700 active:bg-gray-800 transition-colors font-medium min-h-[48px] touch-manipulation"
                 >
                   Tìm kiếm
                 </button>
@@ -418,10 +427,10 @@ export default function ScannerPage() {
 
           {scanning && (
             <div className="space-y-4">
-              <div id={qrCodeRegionId} className="w-full min-h-[300px]"></div>
+              <div id={qrCodeRegionId} className="w-full min-h-[300px] sm:min-h-[400px] rounded-md overflow-hidden"></div>
               <button
                 onClick={stopScanning}
-                className="w-full px-6 py-3 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors font-medium"
+                className="w-full px-6 py-3 bg-red-600 text-white rounded-md hover:bg-red-700 active:bg-red-800 transition-colors font-medium min-h-[48px] touch-manipulation"
               >
                 Dừng quét
               </button>
@@ -435,7 +444,7 @@ export default function ScannerPage() {
           )}
 
           {customerInfo && (
-            <div className={`mt-6 p-6 rounded-md border-2 ${
+            <div className={`mt-4 sm:mt-6 p-4 sm:p-6 rounded-md border-2 ${
               customerInfo.verificationWarnings && customerInfo.verificationWarnings.length > 0
                 ? 'bg-yellow-50 border-yellow-300'
                 : 'bg-green-50 border-green-200'
@@ -458,14 +467,14 @@ export default function ScannerPage() {
                 </div>
               )}
               
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold text-black">Thông tin khách hàng</h2>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2 sm:gap-0">
+                <h2 className="text-xl sm:text-2xl font-bold text-black">Thông tin khách hàng</h2>
                 {(!customerInfo.verificationWarnings || customerInfo.verificationWarnings.length === 0) && (
                   <div className="flex items-center text-green-600">
-                    <svg className="w-5 h-5 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-5 h-5 mr-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    <span className="text-sm font-medium">Đã xác thực</span>
+                    <span className="text-sm font-medium whitespace-nowrap">Đã xác thực</span>
                   </div>
                 )}
               </div>
@@ -537,13 +546,13 @@ export default function ScannerPage() {
                 </div>
               </div>
               
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={() => {
                     setCustomerInfo(null)
                     setError(null)
                   }}
-                  className="flex-1 px-6 py-3 bg-black text-white rounded-md hover:bg-gray-800 transition-colors font-medium"
+                  className="flex-1 px-6 py-3 bg-black text-white rounded-md hover:bg-gray-800 active:bg-gray-900 transition-colors font-medium min-h-[48px] touch-manipulation"
                 >
                   Quét lại
                 </button>
@@ -551,7 +560,7 @@ export default function ScannerPage() {
                   onClick={() => {
                     window.print()
                   }}
-                  className="px-6 py-3 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors font-medium"
+                  className="w-full sm:w-auto px-6 py-3 bg-gray-600 text-white rounded-md hover:bg-gray-700 active:bg-gray-800 transition-colors font-medium min-h-[48px] touch-manipulation"
                 >
                   In thông tin
                 </button>

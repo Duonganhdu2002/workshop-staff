@@ -287,34 +287,34 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key`}
   }
 
   return (
-    <div className="min-h-screen bg-stripes md:bg-stripes-desktop text-black py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-stripes md:bg-stripes-desktop text-black py-4 sm:py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-black">Quản lý đăng ký Workshop</h1>
-            <p className="text-gray-600 mt-2">
+        <div className="mb-4 sm:mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold text-black">Quản lý đăng ký Workshop</h1>
+            <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-base">
               Danh sách đăng ký và quản lý thanh toán
               {staffEmail && (
-                <span className="ml-2 text-sm text-gray-500">• Đăng nhập: {staffEmail}</span>
+                <span className="ml-2 text-xs sm:text-sm text-gray-500 block sm:inline">• {staffEmail}</span>
               )}
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-2 sm:gap-3 w-full sm:w-auto">
             <Link
               href="/seats"
-              className="px-6 py-3 bg-black text-white rounded-md hover:bg-gray-800 transition-colors font-medium"
+              className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 sm:py-3 bg-black text-white rounded-md hover:bg-gray-800 active:bg-gray-900 transition-colors font-medium text-sm sm:text-base min-h-[44px] sm:min-h-0 touch-manipulation text-center"
             >
               Quản lý Ghế
             </Link>
             <Link
               href="/scanner"
-              className="px-6 py-3 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors font-medium"
+              className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 sm:py-3 bg-gray-600 text-white rounded-md hover:bg-gray-700 active:bg-gray-800 transition-colors font-medium text-sm sm:text-base min-h-[44px] sm:min-h-0 touch-manipulation text-center"
             >
               Quét QR Code
             </Link>
             <button
               onClick={handleLogout}
-              className="px-6 py-3 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors font-medium"
+              className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 sm:py-3 bg-gray-600 text-white rounded-md hover:bg-gray-700 active:bg-gray-800 transition-colors font-medium text-sm sm:text-base min-h-[44px] sm:min-h-0 touch-manipulation w-full sm:w-auto"
             >
               Đăng xuất
             </button>
@@ -341,17 +341,17 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key`}
         )}
 
         <div className="bg-white rounded-md border border-gray-200">
-          <div className="border-b border-gray-200 p-4">
-            <div className="flex flex-col md:flex-row gap-4">
+          <div className="border-b border-gray-200 p-3 sm:p-4">
+            <div className="flex flex-col md:flex-row gap-3 sm:gap-4">
               <div className="flex gap-2 flex-wrap">
                 {(['all', 'pending', 'verified', 'sent'] as const).map((status) => (
                   <button
                     key={status}
                     onClick={() => setFilter(status)}
-                    className={`px-4 py-2 rounded-md font-medium transition-colors ${
+                    className={`px-3 sm:px-4 py-2 rounded-md font-medium transition-colors text-sm sm:text-base min-h-[40px] sm:min-h-0 touch-manipulation ${
                       filter === status
                         ? 'bg-black text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300'
                     }`}
                   >
                     {status === 'all' ? 'Tất cả' : 
@@ -369,7 +369,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key`}
                     placeholder="Tìm theo số điện thoại..."
                     value={searchPhone}
                     onChange={(e) => setSearchPhone(e.target.value)}
-                    className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent outline-none bg-white text-black"
+                    className="w-full px-4 py-2.5 sm:py-2 pl-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-black focus:border-transparent outline-none bg-white text-black text-sm sm:text-base min-h-[44px] sm:min-h-0"
                   />
                   <svg
                     className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
@@ -425,118 +425,209 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key`}
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Tên khách hàng
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Email
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      SĐT
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Ngày workshop
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Ghế ngồi
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Trạng thái
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Thao tác
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {registrations.map((reg) => (
-                    <tr key={reg.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{reg.name}</div>
-                        <div className="text-xs text-gray-500">{new Date(reg.created_at).toLocaleString('vi-VN')}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{reg.email}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{reg.phone}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {new Date(reg.workshop_date).toLocaleDateString('vi-VN')}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {reg.seat_number ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                              Ghế {reg.seat_number}
-                            </span>
-                          ) : (
-                            <span className="text-gray-400">-</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+            <>
+              {/* Mobile Card View */}
+              <div className="md:hidden divide-y divide-gray-200">
+                {registrations.map((reg) => (
+                  <div key={reg.id} className="p-4 hover:bg-gray-50">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-base font-semibold text-gray-900 truncate">{reg.name}</h3>
+                        <p className="text-xs text-gray-500 mt-1">{new Date(reg.created_at).toLocaleString('vi-VN')}</p>
+                      </div>
+                      <div className="ml-2 flex-shrink-0">
                         {getStatusBadge(reg.payment_status)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex gap-2">
-                          {reg.payment_status === 'pending' && (
-                            <button
-                              onClick={() => verifyPayment(reg.id)}
-                              disabled={sendingEmailId === reg.id}
-                              className={`font-medium flex items-center gap-2 ${
-                                sendingEmailId === reg.id
-                                  ? 'text-gray-400 cursor-not-allowed'
-                                  : 'text-black hover:text-gray-800'
-                              }`}
-                            >
-                              {sendingEmailId === reg.id && (
-                                <>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2 mb-4">
+                      <div>
+                        <span className="text-xs text-gray-500">Email:</span>
+                        <p className="text-sm text-gray-900 break-all">{reg.email}</p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-gray-500">SĐT:</span>
+                        <p className="text-sm text-gray-900">{reg.phone}</p>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div>
+                          <span className="text-xs text-gray-500">Ngày workshop:</span>
+                          <p className="text-sm text-gray-900">
+                            {new Date(reg.workshop_date).toLocaleDateString('vi-VN')}
+                          </p>
+                        </div>
+                        {reg.seat_number && (
+                          <div>
+                            <span className="text-xs text-gray-500">Ghế:</span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 ml-1">
+                              {reg.seat_number}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="pt-3 border-t border-gray-200">
+                      {reg.payment_status === 'pending' && (
+                        <button
+                          onClick={() => verifyPayment(reg.id)}
+                          disabled={sendingEmailId === reg.id}
+                          className={`w-full font-medium flex items-center justify-center gap-2 py-2.5 px-4 rounded-md min-h-[44px] touch-manipulation ${
+                            sendingEmailId === reg.id
+                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                              : 'bg-black text-white hover:bg-gray-800 active:bg-gray-900'
+                          }`}
+                        >
+                          {sendingEmailId === reg.id && (
+                            <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                          )}
+                          {sendingEmailId === reg.id ? 'Đang gửi mail...' : 'Xác nhận thanh toán'}
+                        </button>
+                      )}
+                      {reg.payment_status === 'verified' && (
+                        <button
+                          onClick={() => sendQRCode(reg)}
+                          disabled={sendingEmailId === reg.id}
+                          className={`w-full font-medium flex items-center justify-center gap-2 py-2.5 px-4 rounded-md min-h-[44px] touch-manipulation ${
+                            sendingEmailId === reg.id
+                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                              : 'bg-gray-600 text-white hover:bg-gray-700 active:bg-gray-800'
+                          }`}
+                        >
+                          {sendingEmailId === reg.id && (
+                            <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                          )}
+                          {sendingEmailId === reg.id ? 'Đang gửi mail...' : 'Gửi QR Code'}
+                        </button>
+                      )}
+                      {reg.payment_status === 'sent' && (
+                        <div className="text-center text-sm text-gray-400 py-2">Đã hoàn tất</div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Tên khách hàng
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Email
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        SĐT
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Ngày workshop
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Ghế ngồi
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Trạng thái
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Thao tác
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {registrations.map((reg) => (
+                      <tr key={reg.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{reg.name}</div>
+                          <div className="text-xs text-gray-500">{new Date(reg.created_at).toLocaleString('vi-VN')}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{reg.email}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{reg.phone}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {new Date(reg.workshop_date).toLocaleDateString('vi-VN')}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {reg.seat_number ? (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                Ghế {reg.seat_number}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {getStatusBadge(reg.payment_status)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex gap-2">
+                            {reg.payment_status === 'pending' && (
+                              <button
+                                onClick={() => verifyPayment(reg.id)}
+                                disabled={sendingEmailId === reg.id}
+                                className={`font-medium flex items-center gap-2 ${
+                                  sendingEmailId === reg.id
+                                    ? 'text-gray-400 cursor-not-allowed'
+                                    : 'text-black hover:text-gray-800'
+                                }`}
+                              >
+                                {sendingEmailId === reg.id && (
+                                  <>
+                                    <svg className="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <span>Đang gửi mail đến khách hàng...</span>
+                                  </>
+                                )}
+                                {sendingEmailId !== reg.id && 'Xác nhận thanh toán'}
+                              </button>
+                            )}
+                            {reg.payment_status === 'verified' && (
+                              <button
+                                onClick={() => sendQRCode(reg)}
+                                disabled={sendingEmailId === reg.id}
+                                className={`font-medium flex items-center gap-2 ${
+                                  sendingEmailId === reg.id
+                                    ? 'text-gray-400 cursor-not-allowed'
+                                    : 'text-black hover:text-gray-800'
+                                }`}
+                              >
+                                {sendingEmailId === reg.id && (
                                   <svg className="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                   </svg>
-                                  <span>Đang gửi mail đến khách hàng...</span>
-                                </>
-                              )}
-                              {sendingEmailId !== reg.id && 'Xác nhận thanh toán'}
-                            </button>
-                          )}
-                          {reg.payment_status === 'verified' && (
-                            <button
-                              onClick={() => sendQRCode(reg)}
-                              disabled={sendingEmailId === reg.id}
-                              className={`font-medium flex items-center gap-2 ${
-                                sendingEmailId === reg.id
-                                  ? 'text-gray-400 cursor-not-allowed'
-                                  : 'text-black hover:text-gray-800'
-                              }`}
-                            >
-                              {sendingEmailId === reg.id && (
-                                <svg className="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                              )}
-                              {sendingEmailId === reg.id ? 'Đang gửi mail đến khách hàng...' : 'Gửi QR Code'}
-                            </button>
-                          )}
-                          {reg.payment_status === 'sent' && (
-                            <span className="text-gray-400">Đã hoàn tất</span>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                                )}
+                                {sendingEmailId === reg.id ? 'Đang gửi mail đến khách hàng...' : 'Gửi QR Code'}
+                              </button>
+                            )}
+                            {reg.payment_status === 'sent' && (
+                              <span className="text-gray-400">Đã hoàn tất</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       </div>
