@@ -453,7 +453,12 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key`}
                         <div>
                           <span className="text-xs text-gray-500">Ngày workshop:</span>
                           <p className="text-sm text-gray-900">
-                            {new Date(reg.workshop_date).toLocaleDateString('vi-VN')}
+                            {(() => {
+                              const workshopDate = reg.workshop_date ? new Date(reg.workshop_date) : null
+                              const isValidDate = workshopDate && !isNaN(workshopDate.getTime()) && workshopDate.getFullYear() > 1970
+                              const displayDate = isValidDate ? workshopDate : new Date('2025-12-28')
+                              return displayDate.toLocaleDateString('vi-VN')
+                            })()}
                           </p>
                         </div>
                         {reg.seat_number && (
@@ -557,7 +562,12 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key`}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">
-                            {new Date(reg.workshop_date).toLocaleDateString('vi-VN')}
+                            {(() => {
+                              const workshopDate = reg.workshop_date ? new Date(reg.workshop_date) : null
+                              const isValidDate = workshopDate && !isNaN(workshopDate.getTime()) && workshopDate.getFullYear() > 1970
+                              const displayDate = isValidDate ? workshopDate : new Date('2025-12-28')
+                              return displayDate.toLocaleDateString('vi-VN')
+                            })()}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">

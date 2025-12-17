@@ -361,7 +361,7 @@ export async function POST(request: NextRequest) {
 
     // Set workshop_date if it's null or missing
     if (!parsedQrData.workshop_date) {
-      const workshopDate = process.env.WORKSHOP_DATE || '2025-01-01'
+      const workshopDate = process.env.WORKSHOP_DATE || '2025-12-28'
       parsedQrData.workshop_date = workshopDate
     }
 

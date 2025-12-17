@@ -496,12 +496,18 @@ export default function ScannerPage() {
                   <div>
                     <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Ngày workshop</span>
                     <p className="text-lg text-black mt-1">
-                      {new Date(customerInfo.workshop_date).toLocaleDateString('vi-VN', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
+                      {(() => {
+                        const workshopDate = customerInfo.workshop_date ? new Date(customerInfo.workshop_date) : null
+                        // Check if date is invalid or is epoch date (1970-01-01)
+                        const isValidDate = workshopDate && !isNaN(workshopDate.getTime()) && workshopDate.getFullYear() > 1970
+                        const displayDate = isValidDate ? workshopDate : new Date('2025-12-28')
+                        return displayDate.toLocaleDateString('vi-VN', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })
+                      })()}
                     </p>
                   </div>
                   {customerInfo.seat_number && (
