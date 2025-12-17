@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import QRCode from 'qrcode'
+import fs from 'fs'
+import path from 'path'
 
 // Email service types
 type EmailService = 'resend' | 'sendgrid' | 'smtp' | 'none'
@@ -48,22 +50,91 @@ async function generateQRCodeBase64(data: string): Promise<string> {
   }
 }
 
+// Generate logo as base64 data URL for HTML embedding
+async function generateLogoBase64(): Promise<string> {
+  try {
+    // Try multiple possible paths
+    const possiblePaths = [
+      path.join(process.cwd(), 'public', 'logo.png'),
+      path.join(process.cwd(), 'logo.png'),
+    ]
+    
+    // In production (Vercel), files are in .next/server directory
+    if (process.env.VERCEL) {
+      possiblePaths.unshift(path.join(process.cwd(), '.next', 'static', 'logo.png'))
+    }
+    
+    for (const logoPath of possiblePaths) {
+      try {
+        if (fs.existsSync(logoPath)) {
+          const logoBuffer = fs.readFileSync(logoPath)
+          const base64 = logoBuffer.toString('base64')
+          console.log(`Logo loaded successfully from: ${logoPath}`)
+          return `data:image/png;base64,${base64}`
+        }
+      } catch (pathError) {
+        // Continue to next path
+        continue
+      }
+    }
+    
+    console.warn(`Logo file not found. Tried paths: ${possiblePaths.join(', ')}`)
+    return ''
+  } catch (error) {
+    console.error('Error reading logo:', error)
+    // Return empty string if logo not found, template will still work
+    return ''
+  }
+}
+
 // Generate HTML email template matching customerv2 UI design
-function generateEmailHTML(name: string, qrCodeImageSrc: string, qrData: string, useCID: boolean = false): string {
+function generateEmailHTML(name: string, qrCodeImageSrc: string, qrData: string, useCID: boolean = false, logoBase64: string = '', emailFromRequest: string = ''): string {
   // For SMTP with CID attachment, use CID reference
   // For other services, use base64 data URI
   const imgSrc = useCID ? 'cid:qrcode@workshop' : qrCodeImageSrc
+  const logoSrc = logoBase64
   
-  // Parse QR data to get seat number if available
+  // Parse QR data to get seat number, workshop date, phone, and email
   let seatNumber: string | null = null
+  let workshopDate: Date | null = null
+  let formattedDate: string = '28/12/2025'
+  let formattedTime: string = '14:00 - 17:00'
+  let phone: string | null = null
+  let emailFromQr: string | null = null
+  
   try {
     const parsed = JSON.parse(qrData)
     if (parsed.seat_number) {
       seatNumber = parsed.seat_number.toString()
     }
+    if (parsed.workshop_date) {
+      workshopDate = new Date(parsed.workshop_date)
+      if (!isNaN(workshopDate.getTime()) && workshopDate.getFullYear() > 1970) {
+        const day = String(workshopDate.getDate()).padStart(2, '0')
+        const month = String(workshopDate.getMonth() + 1).padStart(2, '0')
+        const year = workshopDate.getFullYear()
+        formattedDate = `${day}/${month}/${year}`
+      }
+    }
+    if (parsed.phone || parsed.phone_number) {
+      phone = parsed.phone || parsed.phone_number
+    }
+    if (parsed.email) {
+      emailFromQr = parsed.email
+    }
   } catch (e) {
     // Ignore parsing errors
   }
+  
+  // Use email from request body as fallback if not in qrData
+  if (!emailFromQr && emailFromRequest) {
+    emailFromQr = emailFromRequest
+  }
+  
+  // Get workshop location and time from environment or use defaults
+  const workshopLocation = process.env.WORKSHOP_LOCATION || 'Vibas Coffee - Tầng 1 - 67 Trần Quốc Hoàn, Tân Bình'
+  const workshopTime = process.env.WORKSHOP_TIME || '14:00 - 17:00'
+  const googleMapsLink = 'https://maps.app.goo.gl/A7od1uNSEMjRN9KY8'
   
   return `
 <!DOCTYPE html>
@@ -71,113 +142,210 @@ function generateEmailHTML(name: string, qrCodeImageSrc: string, qrData: string,
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mã QR Code Workshop</title>
+  <title>Xác nhận đăng ký Workshop</title>
 </head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background-color: #f5f5f5; line-height: 1.6;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 20px;">
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f9fafb; line-height: 1.6;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; padding: 20px 0;">
     <tr>
       <td align="center">
         <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+
           <!-- Header -->
           <tr>
-            <td style="padding: 32px 24px; text-align: center; background-color: #ffffff; border-bottom: 1px solid #e5e7eb;">
-              <h1 style="margin: 0; font-size: 32px; font-weight: 700; color: #000000; letter-spacing: -0.5px;">Đăng ký Workshop</h1>
-              <p style="margin: 8px 0 0 0; font-size: 14px; color: #6b7280;">Mã QR Code check-in của bạn</p>
+            <td style="background-color: #ffffff; padding: 32px 24px; border-bottom: 1px solid #e5e7eb;">
+              <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #000000; letter-spacing: -0.5px;">
+                Xác nhận đăng ký thành công
+              </h1>
+              <p style="margin: 8px 0 0 0; font-size: 14px; color: #6b7280; font-weight: 400;">
+                Workshop "Người Việt Healthy Theo Kiểu Việt"
+              </p>
             </td>
           </tr>
-          
-          <!-- Success Message -->
+
+          <!-- Main Content -->
           <tr>
-            <td style="padding: 24px;">
-              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f0fdf4; border: 2px solid #4ade80; border-radius: 6px;">
+            <td style="padding: 32px 24px; background-color: #ffffff;">
+              <!-- Greeting -->
+              <p style="margin: 0 0 20px 0; font-size: 18px; color: #111827; font-weight: 600;">
+                Xin chào <strong style="color: #000000;">${escapeHtml(name)}</strong>
+              </p>
+              
+              <!-- Confirmation Text -->
+              <p style="margin: 0 0 32px 0; font-size: 16px; color: #4b5563; line-height: 1.7;">
+                Tây Nguyên Food - Việt Nam cảm ơn bạn đã đăng ký tham gia workshop. Vui lòng sử dụng mã QR dưới đây để check-in khi đến sự kiện.
+              </p>
+              
+              <!-- QR Code Card -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 32px 0;">
                 <tr>
-                  <td style="padding: 16px;">
-                    <table width="100%" cellpadding="0" cellspacing="0">
+                  <td align="center">
+                    <table cellpadding="0" cellspacing="0" style="background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 24px;">
                       <tr>
-                        <td width="28" style="vertical-align: top;">
-                          <table cellpadding="0" cellspacing="0" border="0" style="width: 20px; height: 20px;">
-                            <tr>
-                              <td style="background-color: #16a34a; border-radius: 50%; text-align: center; vertical-align: middle; width: 20px; height: 20px; font-size: 0;">
-                                <span style="color: #ffffff; font-size: 13px; font-weight: bold; line-height: 20px; font-family: Arial, sans-serif;">✓</span>
-                              </td>
-                            </tr>
-                          </table>
+                        <td align="center" style="padding-bottom: 16px;">
+                          <p style="margin: 0; font-size: 13px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px;">
+                            Mã QR Check-in
+                          </p>
                         </td>
-                        <td style="padding-left: 12px; vertical-align: top;">
-                          <p style="margin: 0; font-size: 14px; font-weight: 600; color: #166534; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Thanh toán đã được xác nhận!</p>
-                          <p style="margin: 4px 0 0 0; font-size: 12px; color: #15803d; font-weight: 500; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Mã QR check-in đã được gửi! Vui lòng kiểm tra email</p>
+                      </tr>
+                      <tr>
+                        <td align="center" style="background-color: #ffffff; padding: 16px;">
+                          <img src="${imgSrc}" alt="QR Code" style="display: block; width: 280px; height: 280px; max-width: 100%; height: auto;" />
                         </td>
                       </tr>
                     </table>
                   </td>
                 </tr>
               </table>
-            </td>
-          </tr>
-          
-          <!-- Greeting -->
-          <tr>
-            <td style="padding: 0 24px 24px 24px;">
-              <p style="margin: 0; font-size: 16px; color: #000000;">
-                Xin chào <strong style="color: #000000;">${escapeHtml(name)}</strong>,
-              </p>
-            </td>
-          </tr>
-          
-          <!-- Main Content -->
-          <tr>
-            <td style="padding: 0 24px 24px 24px;">
-              <p style="margin: 0 0 24px 0; font-size: 16px; color: #374151;">
-                Cảm ơn bạn đã đăng ký tham gia workshop. Dưới đây là mã QR code của bạn để check-in tại sự kiện.
-              </p>
-              
+
+              <!-- Seat Number Card -->
               ${seatNumber ? `
-              <div style="background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; margin-bottom: 24px;">
-                <p style="margin: 0; font-size: 14px; color: #6b7280; margin-bottom: 4px;">Ghế ngồi của bạn:</p>
-                <p style="margin: 0; font-size: 18px; font-weight: 600; color: #000000;">Ghế ${seatNumber}</p>
-              </div>
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 24px 0; background-color: #000000; border-radius: 8px; padding: 20px;">
+                <tr>
+                  <td align="center">
+                    <p style="margin: 0 0 8px 0; font-size: 13px; color: #9ca3af; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">
+                      Ghế ngồi của bạn
+                    </p>
+                    <p style="margin: 0; font-size: 32px; font-weight: 800; color: #ffffff; letter-spacing: -1px;">
+                      Ghế ${seatNumber}
+                    </p>
+                  </td>
+                </tr>
+              </table>
               ` : ''}
+
+              <!-- Customer Information Card -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 24px 0; background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px;">
+                <tr>
+                  <td>
+                    <p style="margin: 0 0 16px 0; font-size: 15px; font-weight: 700; color: #000000;">
+                      Thông tin khách hàng
+                    </p>
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="padding: 8px 0;">
+                          <p style="margin: 0; font-size: 14px; color: #4b5563;">
+                            <strong style="color: #111827; font-weight: 600;">Tên:</strong> <span style="color: #000000; font-weight: 500;">${escapeHtml(name)}</span>
+                          </p>
+                        </td>
+                      </tr>
+                      ${emailFromQr ? `
+                      <tr>
+                        <td style="padding: 8px 0;">
+                          <p style="margin: 0; font-size: 14px; color: #4b5563;">
+                            <strong style="color: #111827; font-weight: 600;">Email:</strong> <a href="mailto:${escapeHtml(emailFromQr)}" style="color: #000000; text-decoration: underline; font-weight: 500;">${escapeHtml(emailFromQr)}</a>
+                          </p>
+                        </td>
+                      </tr>
+                      ` : ''}
+                      ${phone ? `
+                      <tr>
+                        <td style="padding: 8px 0;">
+                          <p style="margin: 0; font-size: 14px; color: #4b5563;">
+                            <strong style="color: #111827; font-weight: 600;">Số điện thoại:</strong> <span style="color: #000000; font-weight: 500;">${escapeHtml(phone)}</span>
+                          </p>
+                        </td>
+                      </tr>
+                      ` : ''}
+                    </table>
+                  </td>
+                </tr>
+              </table>
               
-              <!-- QR Code -->
-              <div style="text-align: center; margin: 32px 0;">
-                <div style="display: inline-block; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px;">
-                  <img src="${imgSrc}" alt="QR Code" style="display: block; width: 300px; height: 300px; max-width: 100%; height: auto; margin: 0 auto;" />
-                </div>
-              </div>
+              <!-- Program Information Section -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin: 32px 0 24px 0;">
+                <tr>
+                  <td>
+                    <p style="margin: 0 0 20px 0; font-size: 18px; font-weight: 700; color: #000000;">
+                      Thông tin chương trình
+                    </p>
+                    
+                    <!-- Detailed Information Card -->
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 20px 0; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px;">
+                      <tr>
+                        <td>
+                          <p style="margin: 0 0 12px 0; font-size: 14px; font-weight: 700; color: #000000;">
+                            Thông tin chi tiết
+                          </p>
+                          <table width="100%" cellpadding="0" cellspacing="0">
+                            <tr>
+                              <td style="padding: 6px 0;">
+                                <p style="margin: 0; font-size: 14px; color: #4b5563; line-height: 1.7;">
+                                  <strong style="color: #111827;">Thời gian:</strong> ${workshopTime}, ngày <strong style="color: #000000;">${formattedDate}</strong>
+                                </p>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td style="padding: 6px 0;">
+                                <p style="margin: 0; font-size: 14px; color: #4b5563; line-height: 1.7;">
+                                  <strong style="color: #111827;">Địa điểm:</strong> <a href="${googleMapsLink}" style="color: #000000; text-decoration: underline; font-weight: 500;">${escapeHtml(workshopLocation)}</a>
+                                </p>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                    
+                    <!-- Participation Notes Card -->
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 20px 0; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px;">
+                      <tr>
+                        <td>
+                          <p style="margin: 0 0 12px 0; font-size: 14px; font-weight: 700; color: #000000;">
+                            Lưu ý khi tham gia chương trình
+                          </p>
+                          <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #4b5563; line-height: 1.8;">
+                            <li style="margin-bottom: 8px;">Giá vé <strong style="color: #000000;">ĐÃ BAO GỒM</strong> nước</li>
+                            <li style="margin-bottom: 8px;">Bạn vui lòng <strong style="color: #000000;">KHÔNG</strong> mang theo đồ ăn, thức uống từ bên ngoài vào</li>
+                            <li style="margin-bottom: 0;">Bạn hãy đến trước thời gian diễn ra <strong style="color: #000000;">15 - 20 phút</strong> để kịp check-in</li>
+                          </ul>
+                        </td>
+                      </tr>
+                    </table>
+                    
+                    <!-- Instructions Card -->
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin: 0; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px;">
+                      <tr>
+                        <td>
+                          <p style="margin: 0 0 12px 0; font-size: 14px; font-weight: 700; color: #000000;">
+                            Hướng dẫn sử dụng
+                          </p>
+                          <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #4b5563; line-height: 1.8;">
+                            <li style="margin-bottom: 8px;">Vui lòng <strong style="color: #000000;">lưu hoặc in</strong> mã QR này để mang theo khi tham dự</li>
+                            <li style="margin-bottom: 8px;">Khi đến workshop, nhân viên sẽ quét mã QR để thực hiện check-in</li>
+                            <li style="margin-bottom: 0;">Mã QR là <strong style="color: #000000;">duy nhất</strong> và chỉ dành riêng cho bạn</li>
+                          </ul>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
               
-              <!-- Instructions -->
-              <div style="background-color: #ffffff; border: 1px solid #e5e7eb; border-left: 4px solid #16a34a; border-radius: 6px; padding: 20px; margin-top: 24px;">
-                <p style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #000000;">Hướng dẫn:</p>
-                <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #4b5563; line-height: 1.8;">
-                  <li style="margin-bottom: 8px;">Vui lòng lưu mã QR code này hoặc in ra để mang theo</li>
-                  <li style="margin-bottom: 8px;">Khi đến workshop, nhân viên sẽ quét mã QR code này để check-in</li>
-                  <li style="margin-bottom: 0;">Mã QR code này là duy nhất và chỉ dành cho bạn</li>
-                </ul>
-              </div>
+              <!-- Closing Message -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin: 32px 0 0 0; padding-top: 24px; border-top: 1px solid #e5e7eb;">
+                <tr>
+                  <td>
+                    <p style="margin: 0; font-size: 15px; color: #4b5563; line-height: 1.7; text-align: center;">
+                      Tây Nguyên Food - Việt Nam hy vọng bạn sẽ có trải nghiệm thật đáng nhớ!
+                    </p>
+                    <p style="margin: 12px 0 0 0; font-size: 14px; color: #6b7280; text-align: center;">
+                      Hãy theo dõi Fanpage <strong style="color: #000000;">Tây Nguyên Food - Việt Nam</strong> để nắm bắt thông tin kịp thời về chương trình nha!
+                    </p>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
-          
+
           <!-- Footer -->
           <tr>
-            <td style="padding: 24px; background-color: #f9fafb; border-top: 1px solid #e5e7eb;">
-              <p style="margin: 0 0 16px 0; font-size: 14px; color: #374151;">
-                Nếu bạn có bất kỳ câu hỏi nào, vui lòng liên hệ với chúng tôi.
-              </p>
-              <p style="margin: 0; font-size: 14px; color: #374151;">
-                Trân trọng,<br>
-                <strong style="color: #000000;">Đội ngũ Workshop</strong>
+            <td style="background-color: #f9fafb; padding: 24px; text-align: center; border-top: 1px solid #e5e7eb;">
+              <p style="margin: 0; font-size: 12px; color: #6b7280;">
+                © ${new Date().getFullYear()} Tây Nguyên Food - Việt Nam. All rights reserved.
               </p>
             </td>
           </tr>
           
-          <!-- Auto-sent notice -->
-          <tr>
-            <td style="padding: 16px 24px; text-align: center; background-color: #ffffff; border-top: 1px solid #e5e7eb;">
-              <p style="margin: 0; font-size: 12px; color: #9ca3af;">
-                Email này được gửi tự động, vui lòng không trả lời.
-              </p>
-            </td>
-          </tr>
         </table>
       </td>
     </tr>
@@ -373,7 +541,7 @@ export async function POST(request: NextRequest) {
     const qrCodeBase64 = await generateQRCodeBase64(updatedQrData)
 
     // Get email subject
-    const emailSubject = process.env.EMAIL_SUBJECT || 'Mã QR Code Workshop của bạn'
+    const emailSubject = process.env.EMAIL_SUBJECT || '[TÂY NGUYÊN FOOD - VIỆT NAM] XÁC NHẬN ĐĂNG KÝ THÀNH CÔNG WORKSHOP "NGƯỜI VIỆT HEALTHY THEO KIỂU VIỆT"'
 
     // Send email based on configured service
     const emailService = getEmailService()
@@ -390,10 +558,13 @@ export async function POST(request: NextRequest) {
     }
 
     try {
+      // Generate logo base64
+      const logoBase64 = await generateLogoBase64()
+      
       // Generate email HTML based on service type
       // SMTP uses CID attachment, others use base64
       const useCID = emailService === 'smtp'
-      const emailHTML = generateEmailHTML(name, qrCodeBase64, updatedQrData, useCID)
+      const emailHTML = generateEmailHTML(name, qrCodeBase64, updatedQrData, useCID, logoBase64, email)
 
       switch (emailService) {
         case 'resend':
