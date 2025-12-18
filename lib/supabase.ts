@@ -60,5 +60,6 @@ export type Registration = {
   updated_at: string
   payment_content?: string | null
   transfer_content?: string | null
+  payment_method?: 'bank_transfer' | 'payos' | null
 }
 
