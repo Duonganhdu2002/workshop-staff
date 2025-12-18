@@ -77,3 +77,4 @@ supabase functions logs decrypt-data --follow
 Code trong `workshop-staff` sẽ tự động sử dụng Edge Function này để giải mã dữ liệu. Không cần thay đổi gì thêm trong code!
 
 
+

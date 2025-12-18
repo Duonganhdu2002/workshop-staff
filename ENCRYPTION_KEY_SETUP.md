@@ -125,3 +125,4 @@ Khi deploy lên production (Vercel, etc.):
 3. Không sử dụng `NEXT_PUBLIC_ENCRYPTION_KEY` (không an toàn)
 
 
+

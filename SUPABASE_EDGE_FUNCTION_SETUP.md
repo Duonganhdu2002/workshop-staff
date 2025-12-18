@@ -152,3 +152,4 @@ supabase functions delete decrypt-data
 - ✅ Không cần quản lý server
 
 
+

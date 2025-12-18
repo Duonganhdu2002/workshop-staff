@@ -54,7 +54,17 @@ export default function AdminPage() {
     try {
       let query = supabase
         .from('registrations')
-        .select('*')
+        .select(`
+          *,
+          payos_payments (
+            id,
+            payos_code,
+            amount,
+            status,
+            payment_link,
+            created_at
+          )
+        `)
         .order('created_at', { ascending: false })
 
       if (filter !== 'all') {
@@ -474,12 +484,42 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key`}
                         </h3>
                         <p className="text-xs text-gray-500 mt-1">{new Date(reg.created_at).toLocaleString('vi-VN')}</p>
                       </div>
-                      <div className="ml-2 flex-shrink-0">
+                      <div className="ml-2 flex-shrink-0 flex flex-col gap-1">
                         {getStatusBadge(reg.payment_status)}
+                        {reg.payment_method && (
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                            reg.payment_method === 'payos' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {reg.payment_method === 'payos' ? 'PayOS' : 'Chuyển khoản'}
+                          </span>
+                        )}
                       </div>
                     </div>
                     
                     <div className="space-y-2 mb-4">
+                      {reg.payment_method === 'payos' && (reg as any).payos_payments && (reg as any).payos_payments.length > 0 && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                          <p className="text-xs text-green-800 font-medium mb-1">Thanh toán PayOS:</p>
+                          <p className="text-xs text-green-700">
+                            Mã: {(reg as any).payos_payments[0].payos_code} | 
+                            Trạng thái: {(reg as any).payos_payments[0].status === 'paid' ? 'Đã thanh toán' : 
+                                         (reg as any).payos_payments[0].status === 'pending' ? 'Chờ thanh toán' :
+                                         (reg as any).payos_payments[0].status === 'cancelled' ? 'Đã hủy' : 'Hết hạn'}
+                          </p>
+                          {(reg as any).payos_payments[0].payment_link && (
+                            <a 
+                              href={(reg as any).payos_payments[0].payment_link} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-xs text-green-600 hover:text-green-800 underline mt-1 inline-block"
+                            >
+                              Xem link thanh toán
+                            </a>
+                          )}
+                        </div>
+                      )}
                       <div>
                         <span className="text-xs text-gray-500">Email:</span>
                         <p className="text-sm text-gray-900 break-all">{reg.email || '-'}</p>
@@ -648,7 +688,29 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key`}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {getStatusBadge(reg.payment_status)}
+                          <div className="space-y-1">
+                            {getStatusBadge(reg.payment_status)}
+                            {reg.payment_method && (
+                              <div>
+                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                  reg.payment_method === 'payos' 
+                                    ? 'bg-green-100 text-green-800' 
+                                    : 'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {reg.payment_method === 'payos' ? 'PayOS' : 'Chuyển khoản'}
+                                </span>
+                              </div>
+                            )}
+                            {reg.payment_method === 'payos' && (reg as any).payos_payments && (reg as any).payos_payments.length > 0 && (
+                              <div className="mt-1 text-xs text-green-700">
+                                Mã: {(reg as any).payos_payments[0].payos_code}
+                                <br />
+                                {(reg as any).payos_payments[0].status === 'paid' ? '✓ Đã thanh toán' : 
+                                 (reg as any).payos_payments[0].status === 'pending' ? '⏳ Chờ thanh toán' :
+                                 (reg as any).payos_payments[0].status === 'cancelled' ? '✗ Đã hủy' : '⏰ Hết hạn'}
+                              </div>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex gap-2">
