@@ -558,50 +558,6 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key`}
                         )}
                       </div>
                     </div>
-                    
-                    <div className="pt-3 border-t border-gray-200">
-                      {reg.payment_status === 'pending' && (
-                        <button
-                          onClick={() => verifyPayment(reg.id)}
-                          disabled={sendingEmailId === reg.id}
-                          className={`w-full font-medium flex items-center justify-center gap-2 py-2.5 px-4 rounded-md min-h-[44px] touch-manipulation ${
-                            sendingEmailId === reg.id
-                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                              : 'bg-black text-white hover:bg-gray-800 active:bg-gray-900'
-                          }`}
-                        >
-                          {sendingEmailId === reg.id && (
-                            <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                          )}
-                          {sendingEmailId === reg.id ? 'Đang gửi mail...' : 'Xác nhận thanh toán'}
-                        </button>
-                      )}
-                      {reg.payment_status === 'verified' && (
-                        <button
-                          onClick={() => sendQRCode(reg)}
-                          disabled={sendingEmailId === reg.id}
-                          className={`w-full font-medium flex items-center justify-center gap-2 py-2.5 px-4 rounded-md min-h-[44px] touch-manipulation ${
-                            sendingEmailId === reg.id
-                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                              : 'bg-gray-600 text-white hover:bg-gray-700 active:bg-gray-800'
-                          }`}
-                        >
-                          {sendingEmailId === reg.id && (
-                            <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                          )}
-                          {sendingEmailId === reg.id ? 'Đang gửi mail...' : 'Gửi QR Code'}
-                        </button>
-                      )}
-                      {reg.payment_status === 'sent' && (
-                        <div className="text-center text-sm text-gray-400 py-2">Đã hoàn tất</div>
-                      )}
-                    </div>
                   </div>
                 ))}
               </div>
@@ -631,9 +587,6 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key`}
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Trạng thái
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Thao tác
                       </th>
                     </tr>
                   </thead>
@@ -709,54 +662,6 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key`}
                                  (reg as any).payos_payments[0].status === 'pending' ? '⏳ Chờ thanh toán' :
                                  (reg as any).payos_payments[0].status === 'cancelled' ? '✗ Đã hủy' : '⏰ Hết hạn'}
                               </div>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex gap-2">
-                            {reg.payment_status === 'pending' && (
-                              <button
-                                onClick={() => verifyPayment(reg.id)}
-                                disabled={sendingEmailId === reg.id}
-                                className={`font-medium flex items-center gap-2 ${
-                                  sendingEmailId === reg.id
-                                    ? 'text-gray-400 cursor-not-allowed'
-                                    : 'text-black hover:text-gray-800'
-                                }`}
-                              >
-                                {sendingEmailId === reg.id && (
-                                  <>
-                                    <svg className="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    <span>Đang gửi mail đến khách hàng...</span>
-                                  </>
-                                )}
-                                {sendingEmailId !== reg.id && 'Xác nhận thanh toán'}
-                              </button>
-                            )}
-                            {reg.payment_status === 'verified' && (
-                              <button
-                                onClick={() => sendQRCode(reg)}
-                                disabled={sendingEmailId === reg.id}
-                                className={`font-medium flex items-center gap-2 ${
-                                  sendingEmailId === reg.id
-                                    ? 'text-gray-400 cursor-not-allowed'
-                                    : 'text-black hover:text-gray-800'
-                                }`}
-                              >
-                                {sendingEmailId === reg.id && (
-                                  <svg className="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                  </svg>
-                                )}
-                                {sendingEmailId === reg.id ? 'Đang gửi mail đến khách hàng...' : 'Gửi QR Code'}
-                              </button>
-                            )}
-                            {reg.payment_status === 'sent' && (
-                              <span className="text-gray-400">Đã hoàn tất</span>
                             )}
                           </div>
                         </td>
