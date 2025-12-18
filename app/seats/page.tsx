@@ -193,6 +193,34 @@ export default function SeatManagementPage() {
     }
   }
 
+  const handleCancelSelectedSeat = async (seatNumber: number) => {
+    if (!isConfigured) {
+      alert('Cấu hình Supabase chưa đầy đủ')
+      return
+    }
+
+    try {
+      // Update seat to available (cancel the selection)
+      const { error: seatError } = await supabase
+        .from('seats')
+        .update({
+          status: 'available',
+          selected_by: null,
+          selected_at: null,
+          expires_at: null
+        })
+        .eq('seat_number', seatNumber)
+
+      if (seatError) throw seatError
+
+      await fetchSeats()
+      setSelectedSeat(null)
+      alert('Đã hủy ghế chờ thành công!')
+    } catch (err: any) {
+      alert('Lỗi: ' + err.message)
+    }
+  }
+
   const handleAssignSeat = async (registrationId: string) => {
     if (!isConfigured || !selectedSeat) {
       alert('Cấu hình Supabase chưa đầy đủ hoặc chưa chọn ghế')
@@ -504,7 +532,37 @@ export default function SeatManagementPage() {
                   </div>
                 )}
 
-                {selectedSeatData.selected_by && (
+                {selectedSeatData.status === 'selected' && (
+                  <>
+                    {selectedSeatData.selected_by && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Đang chọn bởi</label>
+                        <p className="text-sm text-gray-900">{selectedSeatData.selected_by}</p>
+                      </div>
+                    )}
+                    {selectedSeatData.selected_at && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Thời gian chọn</label>
+                        <p className="text-sm text-gray-900">
+                          {new Date(selectedSeatData.selected_at).toLocaleString('vi-VN')}
+                        </p>
+                      </div>
+                    )}
+                    {selectedSeatData.expires_at && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Hết hạn lúc</label>
+                        <p className="text-sm text-gray-900">
+                          {new Date(selectedSeatData.expires_at).toLocaleString('vi-VN')}
+                        </p>
+                        {new Date(selectedSeatData.expires_at) < new Date() && (
+                          <p className="text-xs text-red-600 mt-1">⚠️ Đã hết hạn</p>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {selectedSeatData.status === 'booked' && selectedSeatData.selected_by && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Đang chọn bởi</label>
                     <p className="text-sm text-gray-900">{selectedSeatData.selected_by}</p>
@@ -523,6 +581,25 @@ export default function SeatManagementPage() {
                     >
                       Giải phóng ghế
                     </button>
+                  ) : selectedSeatData.status === 'selected' ? (
+                    <>
+                      <button
+                        onClick={() => {
+                          if (selectedSeat && confirm('Bạn có chắc muốn hủy ghế chờ này? Khách sẽ mất quyền giữ chỗ.')) {
+                            handleCancelSelectedSeat(selectedSeat)
+                          }
+                        }}
+                        className="w-full px-4 py-2.5 bg-orange-600 text-white rounded-md hover:bg-orange-700 active:bg-orange-800 transition-colors font-medium min-h-[44px] touch-manipulation"
+                      >
+                        Hủy ghế chờ
+                      </button>
+                      <button
+                        onClick={() => setShowAssignModal(true)}
+                        className="w-full px-4 py-2.5 bg-black text-white rounded-md hover:bg-gray-800 active:bg-gray-900 transition-colors font-medium min-h-[44px] touch-manipulation"
+                      >
+                        Gán ghế cho đăng ký
+                      </button>
+                    </>
                   ) : (
                     <button
                       onClick={() => setShowAssignModal(true)}
@@ -540,7 +617,7 @@ export default function SeatManagementPage() {
         </div>
 
         {/* Thống kê */}
-        <div className="mt-4 sm:mt-6 grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+        <div className="mt-4 sm:mt-6 grid grid-cols-1 md:grid-cols-4 gap-3 sm:gap-4">
           <div className="bg-white rounded-md border border-gray-200 p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -565,6 +642,21 @@ export default function SeatManagementPage() {
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-md flex items-center justify-center flex-shrink-0">
                 <svg className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-md border border-gray-200 p-3 sm:p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs sm:text-sm text-gray-600">Ghế đang chờ</p>
+                <p className="text-xl sm:text-2xl font-bold text-blue-600">
+                  {seats.filter(s => s.status === 'selected').length}
+                </p>
+              </div>
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-md flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
             </div>
