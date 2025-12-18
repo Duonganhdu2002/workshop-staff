@@ -505,102 +505,166 @@ async function sendWithSMTP(to: string, subject: string, html: string, qrCodeBuf
 
 export async function POST(request: NextRequest) {
   try {
-    const body: RequestBody = await request.json()
-    const { registrationId, email, name, qrData } = body
+    // Authenticate request
+    const { withAuth } = await import('@/lib/middleware')
+    return withAuth(request, async (req, user) => {
+      try {
+        const body: RequestBody = await req.json()
+        const { registrationId, email, name, qrData } = body
 
-    // Validate request body
-    if (!registrationId || !email || !name || !qrData) {
-      return NextResponse.json(
-        { error: 'Thiếu thông tin bắt buộc' },
-        { status: 400 }
-      )
-    }
+        // Validate and sanitize request body
+        const { sanitizeInput, isValidEmail, sanitizeEmail, isEncrypted, safeDecrypt } = await import('@/lib/security')
+        
+        if (!registrationId || !email || !name || !qrData) {
+          return NextResponse.json(
+            { error: 'Thiếu thông tin bắt buộc' },
+            { status: 400 }
+          )
+        }
 
-    // Parse QR data to check and update workshop_date if needed
-    let parsedQrData: any
-    try {
-      parsedQrData = JSON.parse(qrData)
-    } catch (error) {
-      return NextResponse.json(
-        { error: 'Dữ liệu QR code không hợp lệ' },
-        { status: 400 }
-      )
-    }
+        // Decrypt email if it's encrypted
+        let decryptedEmail = email
+        if (typeof email === 'string' && isEncrypted(email)) {
+          try {
+            decryptedEmail = safeDecrypt(email)
+            console.log('Decrypted email in API route')
+          } catch (decryptError) {
+            console.error('Failed to decrypt email:', decryptError)
+            return NextResponse.json(
+              { error: 'Không thể giải mã email. Email có thể đã bị mã hóa không đúng cách.' },
+              { status: 400 }
+            )
+          }
+        }
 
-    // Set workshop_date if it's null or missing
-    if (!parsedQrData.workshop_date) {
-      const workshopDate = process.env.WORKSHOP_DATE || '2025-12-28'
-      parsedQrData.workshop_date = workshopDate
-    }
+        // Sanitize inputs (after decryption)
+        const sanitizedEmail = sanitizeEmail(decryptedEmail)
+        const sanitizedName = sanitizeInput(name)
+        const sanitizedRegistrationId = sanitizeInput(registrationId)
+        const sanitizedQrData = sanitizeInput(qrData)
 
-    // Regenerate QR code with updated data
-    const updatedQrData = JSON.stringify(parsedQrData)
+        // Validate email format
+        if (!sanitizedEmail || !sanitizedEmail.trim()) {
+          return NextResponse.json(
+            { error: 'Email không được để trống' },
+            { status: 400 }
+          )
+        }
 
-    // Generate QR code buffer and base64
-    const qrCodeBuffer = await generateQRCodeBuffer(updatedQrData)
-    const qrCodeBase64 = await generateQRCodeBase64(updatedQrData)
+        if (!isValidEmail(sanitizedEmail)) {
+          return NextResponse.json(
+            { error: `Email không hợp lệ: ${sanitizedEmail}` },
+            { status: 400 }
+          )
+        }
 
-    // Get email subject
-    const emailSubject = process.env.EMAIL_SUBJECT || '[TÂY NGUYÊN FOOD - VIỆT NAM] XÁC NHẬN ĐĂNG KÝ THÀNH CÔNG WORKSHOP "NGƯỜI VIỆT HEALTHY THEO KIỂU VIỆT"'
+        // Validate input lengths (prevent DoS)
+        if (sanitizedName.length > 255 || sanitizedEmail.length > 254) {
+          return NextResponse.json(
+            { error: 'Dữ liệu đầu vào không hợp lệ' },
+            { status: 400 }
+          )
+        }
 
-    // Send email based on configured service
-    const emailService = getEmailService()
+        // Parse QR data to check and update workshop_date if needed
+        let parsedQrData: any
+        try {
+          parsedQrData = JSON.parse(sanitizedQrData)
+        } catch (error) {
+          return NextResponse.json(
+            { error: 'Dữ liệu QR code không hợp lệ' },
+            { status: 400 }
+          )
+        }
 
-    if (emailService === 'none') {
-      // Development mode: return QR code in response
-      console.log('EMAIL_SERVICE=none: Email không được gửi. QR code được trả về trong response.')
-      return NextResponse.json({
-        success: true,
-        message: 'Email không được gửi (EMAIL_SERVICE=none). QR code được trả về để test.',
-        qrCodeDataURL: qrCodeBase64,
-        qrData: updatedQrData,
-      })
-    }
+        // Set workshop_date if it's null or missing
+        if (!parsedQrData.workshop_date) {
+          const workshopDate = process.env.WORKSHOP_DATE || '2025-12-28'
+          parsedQrData.workshop_date = workshopDate
+        }
 
-    try {
-      // Generate logo base64
-      const logoBase64 = await generateLogoBase64()
-      
-      // Generate email HTML based on service type
-      // SMTP uses CID attachment, others use base64
-      const useCID = emailService === 'smtp'
-      const emailHTML = generateEmailHTML(name, qrCodeBase64, updatedQrData, useCID, logoBase64, email)
+        // Regenerate QR code with updated data
+        const updatedQrData = JSON.stringify(parsedQrData)
 
-      switch (emailService) {
-        case 'resend':
-          await sendWithResend(email, emailSubject, emailHTML)
-          break
-        case 'sendgrid':
-          await sendWithSendGrid(email, emailSubject, emailHTML)
-          break
-        case 'smtp':
-          await sendWithSMTP(email, emailSubject, emailHTML, qrCodeBuffer)
-          break
-        default:
-          throw new Error(`Email service không được hỗ trợ: ${emailService}`)
+        // Generate QR code buffer and base64
+        const qrCodeBuffer = await generateQRCodeBuffer(updatedQrData)
+        const qrCodeBase64 = await generateQRCodeBase64(updatedQrData)
+
+        // Get email subject
+        const emailSubject = process.env.EMAIL_SUBJECT || '[TÂY NGUYÊN FOOD - VIỆT NAM] XÁC NHẬN ĐĂNG KÝ THÀNH CÔNG WORKSHOP "NGƯỜI VIỆT HEALTHY THEO KIỂU VIỆT"'
+
+        // Send email based on configured service
+        const emailService = getEmailService()
+
+        if (emailService === 'none') {
+          // Development mode: return QR code in response
+          console.log('EMAIL_SERVICE=none: Email không được gửi. QR code được trả về trong response.')
+          const { addSecurityHeaders } = await import('@/lib/middleware')
+          return addSecurityHeaders(NextResponse.json({
+            success: true,
+            message: 'Email không được gửi (EMAIL_SERVICE=none). QR code được trả về để test.',
+            qrCodeDataURL: qrCodeBase64,
+            qrData: updatedQrData,
+          }))
+        }
+
+        try {
+          // Generate logo base64
+          const logoBase64 = await generateLogoBase64()
+          
+          // Generate email HTML based on service type
+          // SMTP uses CID attachment, others use base64
+          const useCID = emailService === 'smtp'
+          const emailHTML = generateEmailHTML(sanitizedName, qrCodeBase64, updatedQrData, useCID, logoBase64, sanitizedEmail)
+
+          switch (emailService) {
+            case 'resend':
+              await sendWithResend(sanitizedEmail, emailSubject, emailHTML)
+              break
+            case 'sendgrid':
+              await sendWithSendGrid(sanitizedEmail, emailSubject, emailHTML)
+              break
+            case 'smtp':
+              await sendWithSMTP(sanitizedEmail, emailSubject, emailHTML, qrCodeBuffer)
+              break
+            default:
+              throw new Error(`Email service không được hỗ trợ: ${emailService}`)
+          }
+
+          const { addSecurityHeaders } = await import('@/lib/middleware')
+          return addSecurityHeaders(NextResponse.json({
+            success: true,
+            message: 'Email đã được gửi thành công',
+          }))
+        } catch (emailError: any) {
+          console.error('Error sending email:', emailError)
+          const { addSecurityHeaders } = await import('@/lib/middleware')
+          return addSecurityHeaders(NextResponse.json(
+            {
+              error: 'Không thể gửi email. Vui lòng thử lại sau.',
+            },
+            { status: 500 }
+          ))
+        }
+      } catch (error: any) {
+        console.error('Error in send-qr API:', error)
+        const { addSecurityHeaders } = await import('@/lib/middleware')
+        return addSecurityHeaders(NextResponse.json(
+          {
+            error: 'Đã xảy ra lỗi khi xử lý yêu cầu',
+          },
+          { status: 500 }
+        ))
       }
-
-      return NextResponse.json({
-        success: true,
-        message: 'Email đã được gửi thành công',
-      })
-    } catch (emailError: any) {
-      console.error('Error sending email:', emailError)
-      return NextResponse.json(
-        {
-          error: emailError.message || 'Không thể gửi email',
-          details: emailError.toString(),
-        },
-        { status: 500 }
-      )
-    }
+    })
   } catch (error: any) {
     console.error('Error in send-qr API:', error)
-    return NextResponse.json(
+    const { addSecurityHeaders } = await import('@/lib/middleware')
+    return addSecurityHeaders(NextResponse.json(
       {
-        error: error.message || 'Đã xảy ra lỗi khi xử lý yêu cầu',
+        error: 'Đã xảy ra lỗi khi xử lý yêu cầu',
       },
       { status: 500 }
-    )
+    ))
   }
 }

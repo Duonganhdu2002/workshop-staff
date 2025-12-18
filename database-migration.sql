@@ -13,3 +13,6 @@ ADD COLUMN IF NOT EXISTS payment_content TEXT;
 COMMENT ON COLUMN public.registrations.transfer_content IS 'Nội dung chuyển khoản để nhân viên kiểm tra';
 COMMENT ON COLUMN public.registrations.payment_content IS 'Nội dung thanh toán (alternative field name)';
 
+
+
+

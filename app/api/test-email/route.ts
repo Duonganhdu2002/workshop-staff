@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import QRCode from 'qrcode'
 import fs from 'fs'
 import path from 'path'
@@ -304,49 +304,63 @@ function generateEmailHTML(name: string, qrCodeImageSrc: string, qrData: string,
   `.trim()
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // Generate test QR code
-    const testQrData = JSON.stringify({
-      registration_id: 'test-123',
-      name: 'Nguyễn Văn A',
-      email: 'test@example.com',
-      phone: '0901234567',
-      seat_number: 15,
-      workshop_date: '2025-12-28'
-    })
+    // Authenticate request
+    const { withAuth, addSecurityHeaders } = await import('@/lib/middleware')
+    return withAuth(request, async (req, user) => {
+      try {
+        // Generate test QR code
+        const testQrData = JSON.stringify({
+          registration_id: 'test-123',
+          name: 'Nguyễn Văn A',
+          email: 'test@example.com',
+          phone: '0901234567',
+          seat_number: 15,
+          workshop_date: '2025-12-28'
+        })
 
-    const qrCodeBase64 = await QRCode.toDataURL(testQrData, {
-      errorCorrectionLevel: 'H',
-      type: 'image/png',
-      width: 200,
-      margin: 2,
-    })
+        const qrCodeBase64 = await QRCode.toDataURL(testQrData, {
+          errorCorrectionLevel: 'H',
+          type: 'image/png',
+          width: 200,
+          margin: 2,
+        })
 
-    // Generate logo base64
-    const logoBase64 = await generateLogoBase64()
+        // Generate logo base64
+        const logoBase64 = await generateLogoBase64()
 
-    // Generate email HTML with test data
-    const emailHTML = generateEmailHTML(
-      'Nguyễn Văn A',
-      qrCodeBase64,
-      testQrData,
-      logoBase64
-    )
+        // Generate email HTML with test data
+        const emailHTML = generateEmailHTML(
+          'Nguyễn Văn A',
+          qrCodeBase64,
+          testQrData,
+          logoBase64
+        )
 
-    return NextResponse.json({
-      html: emailHTML,
-      success: true
+        return addSecurityHeaders(NextResponse.json({
+          html: emailHTML,
+          success: true
+        }))
+      } catch (error: any) {
+        console.error('Error generating test email:', error)
+        return addSecurityHeaders(NextResponse.json(
+          {
+            error: 'Không thể tạo email test',
+          },
+          { status: 500 }
+        ))
+      }
     })
   } catch (error: any) {
-    console.error('Error generating test email:', error)
-    return NextResponse.json(
+    console.error('Error in test-email API:', error)
+    const { addSecurityHeaders } = await import('@/lib/middleware')
+    return addSecurityHeaders(NextResponse.json(
       {
-        error: error.message || 'Không thể tạo email test',
-        details: error.toString(),
+        error: 'Đã xảy ra lỗi khi xử lý yêu cầu',
       },
       { status: 500 }
-    )
+    ))
   }
 }
 

@@ -13,10 +13,13 @@ export default function LoginPage() {
 
   useEffect(() => {
     // Check if already logged in
-    const session = getStaffSession()
-    if (session) {
-      router.push('/')
+    const checkAuth = async () => {
+      const session = await getStaffSession()
+      if (session) {
+        router.push('/')
+      }
     }
+    checkAuth()
   }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -25,12 +28,20 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
+      // Validate inputs client-side
+      if (!email || !password) {
+        setError('Vui lòng nhập đầy đủ thông tin')
+        setLoading(false)
+        return
+      }
+
       // Call API to authenticate
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Important: include cookies
         body: JSON.stringify({ email, password }),
       })
 
@@ -40,8 +51,12 @@ export default function LoginPage() {
         throw new Error(data.error || 'Đăng nhập thất bại. Vui lòng thử lại.')
       }
 
-      // Save session to localStorage
-      localStorage.setItem('staff_session', JSON.stringify(data.session))
+      // Token is now stored in httpOnly cookie automatically
+      // Store CSRF token if provided
+      if (data.csrfToken) {
+        // CSRF token is also in httpOnly cookie, but we can store it in memory if needed
+        sessionStorage.setItem('csrf_token', data.csrfToken)
+      }
       
       // Redirect to home page
       router.push('/')

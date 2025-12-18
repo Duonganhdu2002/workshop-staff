@@ -4,45 +4,67 @@ export interface StaffSession {
   email: string
   name?: string
   id?: string
-  loginTime: string
 }
 
-export const getStaffSession = (): StaffSession | null => {
-  if (typeof window === 'undefined') return null
-  
+// Check authentication status via API
+export const isStaffAuthenticated = async (): Promise<boolean> => {
   try {
-    const session = localStorage.getItem('staff_session')
-    if (!session) return null
+    const response = await fetch('/api/auth/verify', {
+      method: 'GET',
+      credentials: 'include', // Include cookies
+    })
+    return response.ok
+  } catch {
+    return false
+  }
+}
+
+// Get current user session
+export const getStaffSession = async (): Promise<StaffSession | null> => {
+  try {
+    const response = await fetch('/api/auth/verify', {
+      method: 'GET',
+      credentials: 'include',
+    })
     
-    const sessionData: StaffSession = JSON.parse(session)
-    
-    // Check if session is valid (not expired - 24 hours)
-    const loginTime = new Date(sessionData.loginTime)
-    const now = new Date()
-    const hoursDiff = (now.getTime() - loginTime.getTime()) / (1000 * 60 * 60)
-    
-    if (hoursDiff > 24) {
-      localStorage.removeItem('staff_session')
+    if (!response.ok) {
       return null
     }
     
-    return sessionData
+    const data = await response.json()
+    return data.user || null
   } catch {
     return null
   }
 }
 
-export const isStaffAuthenticated = (): boolean => {
-  return getStaffSession() !== null
-}
-
-export const logoutStaff = (): void => {
+// Logout function
+export const logoutStaff = async (): Promise<void> => {
+  try {
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+    })
+  } catch (error) {
+    console.error('Logout error:', error)
+  }
+  
+  // Clear any client-side storage as fallback
   if (typeof window !== 'undefined') {
     localStorage.removeItem('staff_session')
+    sessionStorage.clear()
   }
 }
 
+// Get staff email (synchronous version for backward compatibility)
 export const getStaffEmail = (): string | null => {
-  const session = getStaffSession()
+  // This is now async, but keeping sync version for compatibility
+  // Components should use getStaffSession() instead
+  return null
+}
+
+// Get staff email async
+export const getStaffEmailAsync = async (): Promise<string | null> => {
+  const session = await getStaffSession()
   return session?.email || null
 }

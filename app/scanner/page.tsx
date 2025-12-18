@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
-import { logoutStaff, getStaffEmail } from '@/lib/auth'
+import { logoutStaff, getStaffEmailAsync } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -55,7 +55,7 @@ export default function ScannerPage() {
 
   useEffect(() => {
     const loadStaffEmail = async () => {
-      const email = await getStaffEmail()
+      const email = await getStaffEmailAsync()
       setStaffEmail(email)
     }
     loadStaffEmail()
@@ -259,18 +259,22 @@ export default function ScannerPage() {
         throw new Error('Không tìm thấy thông tin khách hàng trong hệ thống')
       }
 
+      // Decrypt data before displaying to users
+      const { decryptRegistration } = await import('@/lib/security')
+      const decryptedData = await decryptRegistration(data)
+
       // Verify QR code data matches database (security check)
       const verificationErrors: string[] = []
       
-      if (qrData.email && qrData.email.toLowerCase() !== data.email.toLowerCase()) {
+      if (qrData.email && qrData.email.toLowerCase() !== decryptedData.email.toLowerCase()) {
         verificationErrors.push('Email không khớp')
       }
       
-      if (qrData.name && qrData.name.trim() !== data.name.trim()) {
+      if (qrData.name && qrData.name.trim() !== decryptedData.name.trim()) {
         verificationErrors.push('Tên không khớp')
       }
       
-      if (qrData.phone && qrData.phone !== data.phone) {
+      if (qrData.phone && qrData.phone !== decryptedData.phone) {
         verificationErrors.push('Số điện thoại không khớp')
       }
 
@@ -278,10 +282,10 @@ export default function ScannerPage() {
       if (verificationErrors.length > 0) {
         console.warn('QR code verification warnings:', verificationErrors)
         // Still show data but mark as potentially invalid
-        setCustomerInfo({ ...data, verificationWarnings: verificationErrors })
+        setCustomerInfo({ ...decryptedData, verificationWarnings: verificationErrors })
       } else {
         // All checks passed
-        setCustomerInfo(data)
+        setCustomerInfo(decryptedData)
       }
       
       setError(null)
@@ -327,26 +331,30 @@ export default function ScannerPage() {
         throw new Error('Không tìm thấy thông tin khách hàng trong hệ thống')
       }
 
+      // Decrypt data before displaying to users
+      const { decryptRegistration } = await import('@/lib/security')
+      const decryptedData = await decryptRegistration(data)
+
       // Verify QR code data matches database
       const verificationErrors: string[] = []
       
-      if (parsed.email && parsed.email.toLowerCase() !== data.email.toLowerCase()) {
+      if (parsed.email && parsed.email.toLowerCase() !== decryptedData.email.toLowerCase()) {
         verificationErrors.push('Email không khớp')
       }
       
-      if (parsed.name && parsed.name.trim() !== data.name.trim()) {
+      if (parsed.name && parsed.name.trim() !== decryptedData.name.trim()) {
         verificationErrors.push('Tên không khớp')
       }
       
-      if (parsed.phone && parsed.phone !== data.phone) {
+      if (parsed.phone && parsed.phone !== decryptedData.phone) {
         verificationErrors.push('Số điện thoại không khớp')
       }
 
       if (verificationErrors.length > 0) {
         console.warn('QR code verification warnings:', verificationErrors)
-        setCustomerInfo({ ...data, verificationWarnings: verificationErrors })
+        setCustomerInfo({ ...decryptedData, verificationWarnings: verificationErrors })
       } else {
-        setCustomerInfo(data)
+        setCustomerInfo(decryptedData)
       }
       
       setError(null)

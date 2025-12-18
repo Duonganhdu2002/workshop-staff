@@ -200,14 +200,31 @@ async function sendWithSMTP(to: string, subject: string, html: string): Promise<
 
 export async function GET(request: NextRequest) {
   try {
-    // Verify authorization header (for cron job security)
+    // Verify authorization header (for cron job security) OR staff authentication
     const authHeader = request.headers.get('authorization')
     const cronSecret = process.env.CRON_SECRET
+    
+    // Allow either cron secret OR staff authentication
+    let isAuthorized = false
+    
+    if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+      isAuthorized = true
+    } else {
+      // Try staff authentication
+      const { authenticateRequest } = await import('@/lib/middleware')
+      const authResult = await authenticateRequest(request)
+      if (!(authResult instanceof NextResponse)) {
+        isAuthorized = true
+      }
+    }
 
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
+    if (!isAuthorized) {
+      const { addSecurityHeaders } = await import('@/lib/middleware')
+      return addSecurityHeaders(
+        NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        )
       )
     }
 
@@ -277,18 +294,22 @@ export async function GET(request: NextRequest) {
       console.error('Failed to send notification:', err)
     })
 
-    return NextResponse.json({
+    const { addSecurityHeaders } = await import('@/lib/middleware')
+    return addSecurityHeaders(NextResponse.json({
       success: true,
       message: `Released ${expiredSeats.length} expired seat(s)`,
       expiredSeatsCount: expiredSeats.length,
       releasedSeats: seatNumbers,
       timestamp: new Date().toISOString(),
-    })
+    }))
   } catch (error: any) {
     console.error('Error in check-expired-seats:', error)
-    return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
-      { status: 500 }
+    const { addSecurityHeaders } = await import('@/lib/middleware')
+    return addSecurityHeaders(
+      NextResponse.json(
+        { error: 'Internal server error' },
+        { status: 500 }
+      )
     )
   }
 }

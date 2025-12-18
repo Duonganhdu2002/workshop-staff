@@ -16,13 +16,17 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       return
     }
 
-    // Check authentication
-    const authenticated = isStaffAuthenticated()
-    setIsAuthenticated(authenticated)
+    // Check authentication async
+    const checkAuth = async () => {
+      const authenticated = await isStaffAuthenticated()
+      setIsAuthenticated(authenticated)
 
-    if (!authenticated) {
-      router.push('/login')
+      if (!authenticated) {
+        router.push('/login')
+      }
     }
+    
+    checkAuth()
   }, [router, pathname])
 
   // Show loading while checking auth

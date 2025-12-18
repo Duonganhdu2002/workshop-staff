@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase, isSupabaseConfigured, type Registration } from '@/lib/supabase'
-import { logoutStaff, getStaffEmail } from '@/lib/auth'
+import { logoutStaff, getStaffEmailAsync } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -22,7 +22,7 @@ export default function AdminPage() {
   useEffect(() => {
     // Get staff email
     const loadStaffEmail = async () => {
-      const email = await getStaffEmail()
+      const email = await getStaffEmailAsync()
       setStaffEmail(email)
     }
     loadStaffEmail()
@@ -70,6 +70,17 @@ export default function AdminPage() {
 
       const { data, error: queryError } = await query
 
+      // Decrypt data if it's encrypted - always show plain text to users
+      let processedData = data
+      if (data && data.length > 0) {
+        const { decryptRegistration } = await import('@/lib/security')
+        
+        // Decrypt all registrations using batch API or direct decryption
+        processedData = await Promise.all(
+          data.map((reg: any) => decryptRegistration(reg))
+        )
+      }
+
       if (queryError) {
         // Log full error details
         console.error('Error fetching registrations:', {
@@ -98,7 +109,8 @@ export default function AdminPage() {
         setError(errorMessage)
         setRegistrations([])
       } else {
-        setRegistrations(data || [])
+        // Use processed (decrypted) data
+        setRegistrations(processedData || [])
         setError(null)
       }
     } catch (err: any) {
@@ -116,15 +128,30 @@ export default function AdminPage() {
       throw new Error('Cấu hình Supabase chưa đầy đủ')
     }
 
-    // Generate QR code data
+    // Ensure registration data is decrypted
+    // decryptRegistration handles both encrypted and non-encrypted data safely
+    const { decryptRegistration, isValidEmail } = await import('@/lib/security')
+    const decryptedReg = await decryptRegistration(registration)
+
+    // Validate email after decryption
+    if (!decryptedReg.email || !decryptedReg.email.trim()) {
+      throw new Error('Email không hợp lệ hoặc không tìm thấy email của khách hàng')
+    }
+
+    const email = decryptedReg.email.trim()
+    if (!isValidEmail(email)) {
+      throw new Error(`Email không hợp lệ: ${email}`)
+    }
+
+    // Generate QR code data using decrypted data
     // Note: workshop_date will be automatically set in the API if it's null
     const qrData = JSON.stringify({
-      id: registration.id,
-      name: registration.name,
-      email: registration.email,
-      phone: registration.phone,
-      workshop_date: registration.workshop_date,
-      seat_number: registration.seat_number
+      id: decryptedReg.id,
+      name: decryptedReg.name || '',
+      email: email,
+      phone: decryptedReg.phone || '',
+      workshop_date: decryptedReg.workshop_date,
+      seat_number: decryptedReg.seat_number
     })
 
     // Call API to send email
@@ -134,9 +161,9 @@ export default function AdminPage() {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        registrationId: registration.id,
-        email: registration.email,
-        name: registration.name,
+        registrationId: decryptedReg.id,
+        email: email,
+        name: decryptedReg.name || '',
         qrData: qrData
       }),
     })
@@ -153,7 +180,7 @@ export default function AdminPage() {
         payment_status: 'sent',
         qr_code: qrData
       })
-      .eq('id', registration.id)
+      .eq('id', decryptedReg.id)
 
     if (error) {
       throw new Error(error.message || 'Không thể cập nhật trạng thái')
@@ -181,6 +208,16 @@ export default function AdminPage() {
         return
       }
 
+      // Decrypt registration data before using it
+      const { decryptRegistration } = await import('@/lib/security')
+      const decryptedRegistration = await decryptRegistration(registration)
+
+      // Validate email before proceeding
+      if (!decryptedRegistration.email || !decryptedRegistration.email.trim()) {
+        alert('Lỗi: Không tìm thấy email của khách hàng. Vui lòng kiểm tra lại thông tin đăng ký.')
+        return
+      }
+
       // Update payment status to 'verified'
       const { error } = await supabase
         .from('registrations')
@@ -195,8 +232,8 @@ export default function AdminPage() {
       // Automatically send QR code email after payment verification
       setSendingEmailId(id)
       try {
-        // Update registration object with verified status
-        const updatedRegistration = { ...registration, payment_status: 'verified' as const }
+        // Update registration object with verified status and decrypted data
+        const updatedRegistration = { ...decryptedRegistration, payment_status: 'verified' as const }
         await sendQRCodeEmail(updatedRegistration)
         await fetchRegistrations()
         alert('Đã xác nhận thanh toán và gửi mã QR code thành công!')
@@ -432,7 +469,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key`}
                   <div key={reg.id} className="p-4 hover:bg-gray-50">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-base font-semibold text-gray-900 truncate">{reg.name}</h3>
+                        <h3 className="text-base font-semibold text-gray-900 break-words">
+                          {reg.name || reg.email || 'Không có tên'}
+                        </h3>
                         <p className="text-xs text-gray-500 mt-1">{new Date(reg.created_at).toLocaleString('vi-VN')}</p>
                       </div>
                       <div className="ml-2 flex-shrink-0">
@@ -443,11 +482,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key`}
                     <div className="space-y-2 mb-4">
                       <div>
                         <span className="text-xs text-gray-500">Email:</span>
-                        <p className="text-sm text-gray-900 break-all">{reg.email}</p>
+                        <p className="text-sm text-gray-900 break-all">{reg.email || '-'}</p>
                       </div>
                       <div>
                         <span className="text-xs text-gray-500">SĐT:</span>
-                        <p className="text-sm text-gray-900">{reg.phone}</p>
+                        <p className="text-sm text-gray-900">{reg.phone || '-'}</p>
                       </div>
                       {(reg.transfer_content || reg.payment_content) && (
                         <div>
@@ -532,7 +571,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key`}
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px]">
                         Tên khách hàng
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -561,15 +600,17 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key`}
                   <tbody className="bg-white divide-y divide-gray-200">
                     {registrations.map((reg) => (
                       <tr key={reg.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{reg.name}</div>
-                          <div className="text-xs text-gray-500">{new Date(reg.created_at).toLocaleString('vi-VN')}</div>
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-medium text-gray-900 break-words max-w-xs">
+                            {reg.name || reg.email || 'Không có tên'}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">{new Date(reg.created_at).toLocaleString('vi-VN')}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900 break-words max-w-xs">{reg.email || '-'}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{reg.email}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{reg.phone}</div>
+                          <div className="text-sm text-gray-900">{reg.phone || '-'}</div>
                         </td>
                         <td className="px-4 py-4">
                           <div className="text-sm text-gray-900">

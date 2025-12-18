@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase, isSupabaseConfigured, type Registration } from '@/lib/supabase'
-import { logoutStaff, getStaffEmail } from '@/lib/auth'
+import { logoutStaff, getStaffEmailAsync } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -38,7 +38,11 @@ export default function SeatManagementPage() {
   const isConfigured = isSupabaseConfigured()
 
   useEffect(() => {
-    setStaffEmail(getStaffEmail())
+    const loadEmail = async () => {
+      const email = await getStaffEmailAsync()
+      setStaffEmail(email)
+    }
+    loadEmail()
     if (isConfigured) {
       fetchSeats()
       fetchRegistrations()
@@ -105,7 +109,12 @@ export default function SeatManagementPage() {
           .in('id', registrationIds)
 
         if (!regError && regData) {
-          regData.forEach(reg => {
+          // Decrypt registration data before storing
+          const { decryptRegistration } = await import('@/lib/security')
+          const decryptedRegs = await Promise.all(
+            regData.map((reg: any) => decryptRegistration(reg))
+          )
+          decryptedRegs.forEach(reg => {
             registrationsMap[reg.id] = reg
           })
         }
