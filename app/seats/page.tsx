@@ -221,6 +221,50 @@ export default function SeatManagementPage() {
     }
   }
 
+  const handleMarkSeatAsBooked = async () => {
+    if (!isConfigured || !selectedSeat) {
+      alert('Cấu hình Supabase chưa đầy đủ hoặc chưa chọn ghế')
+      return
+    }
+
+    if (!confirm(`Bạn có chắc muốn đánh dấu ghế ${selectedSeat} là đã đặt?`)) {
+      return
+    }
+
+    setAssigningSeat(true)
+    try {
+      // Check if selected seat is already booked by someone else
+      const currentSeat = seats.find(s => s.seat_number === selectedSeat)
+      if (currentSeat?.status === 'booked' && currentSeat.registration_id) {
+        throw new Error('Ghế này đã được đặt bởi người khác')
+      }
+
+      // Update seat to booked status without registration_id
+      // This allows staff to mark seat as booked without assigning to a registration
+      const { error: seatError } = await supabase
+        .from('seats')
+        .update({
+          status: 'booked',
+          registration_id: null,
+          selected_by: null,
+          selected_at: null,
+          expires_at: null
+        })
+        .eq('seat_number', selectedSeat)
+
+      if (seatError) throw seatError
+
+      await fetchSeats()
+      setShowAssignModal(false)
+      setSelectedSeat(null)
+      alert('Đã đánh dấu ghế là đã đặt thành công!')
+    } catch (err: any) {
+      alert('Lỗi: ' + err.message)
+    } finally {
+      setAssigningSeat(false)
+    }
+  }
+
   const handleAssignSeat = async (registrationId: string) => {
     if (!isConfigured || !selectedSeat) {
       alert('Cấu hình Supabase chưa đầy đủ hoặc chưa chọn ghế')
@@ -253,13 +297,14 @@ export default function SeatManagementPage() {
         }
       }
 
-      // Check if selected seat is available
+      // Check if selected seat is already booked by someone else
       const currentSeat = seats.find(s => s.seat_number === selectedSeat)
       if (currentSeat?.status === 'booked' && currentSeat.registration_id !== registrationId) {
         throw new Error('Ghế này đã được đặt bởi người khác')
       }
 
-      // Update seat to booked
+      // Update seat to booked status - mark as permanently booked
+      // This will mark the seat as booked regardless of previous status (available/selected)
       const { error: seatError } = await supabase
         .from('seats')
         .update({
@@ -691,7 +736,26 @@ export default function SeatManagementPage() {
             <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-4 sm:pb-6">
               <div className="space-y-2">
                 {registrations.length === 0 ? (
-                  <p className="text-sm text-gray-500">Không có đăng ký nào</p>
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-500">Không có đăng ký nào</p>
+                    <button
+                      onClick={handleMarkSeatAsBooked}
+                      disabled={assigningSeat}
+                      className="w-full px-4 py-2.5 bg-black text-white rounded-md hover:bg-gray-800 active:bg-gray-900 transition-colors font-medium min-h-[44px] touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {assigningSeat ? (
+                        <>
+                          <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          <span>Đang xử lý...</span>
+                        </>
+                      ) : (
+                        'Đánh dấu ghế là đã đặt'
+                      )}
+                    </button>
+                  </div>
                 ) : (
                   registrations.map(reg => (
                     <button
